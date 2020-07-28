@@ -1,10 +1,10 @@
 trigger:
-  - '*'
+- '*'
   
-  variables:
+variables:
     buildConfiguration: 'Release'
   
-  stages:
+stages:
   - stage: 'Build'
     displayName: 'Build the web application'
     jobs: 
@@ -127,11 +127,11 @@ trigger:
             steps:
             - download: current
               artifact: drop
-            - task: AzureWebApp@1~
+            - task: AzureWebApp@1
               displayName: 'Azure App Service Deploy: website'
               inputs:
                 azureSubscription: 'Resource Manager - Tailspin - Space Game'
-                deployToSlotOrASE: 'true'
+                deployToSlotOrASE: true
                 resourceGroupName: 'tailspin-space-game-rg'
                 slotName: 'swap'
                 appName: '$(WebAppNameStaging)'
