@@ -74,6 +74,7 @@ stages:
 
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
+    - task: owaspzap@1
 
 - stage: 'Dev'
   displayName: 'Deploy to the dev environment'
