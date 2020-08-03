@@ -63,6 +63,15 @@ stages:
         arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
         zipAfterPublish: true
 
+    - task: UniversalPackages@0
+      displayName: Universal Publish
+      inputs:
+        command: publish
+        publishDirectory: '$(Build.ArtifactStagingDirectory)'
+        vstsFeedPublish: 'Functional Tests/Security Tests'
+        vstsFeedPackagePublish: 'security_testing'
+        packagePublishDescription: 'security testing'
+
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
 
