@@ -63,86 +63,7 @@ stages:
         arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
         zipAfterPublish: true
 
-    - task: UniversalPackages@0
-      displayName: Universal Publish
-      inputs:
-        command: publish
-        publishDirectory: '$(Build.ArtifactStagingDirectory)'
-        vstsFeedPublish: 'Functional Tests/Security Tests'
-        vstsFeedPackagePublish: 'security_testing'
-        packagePublishDescription: 'security testing'
-
-    - publish: '$(Build.ArtifactStagingDirectory)'
-      artifact: drop
-    - task: owaspzap@1
-      displayName: Run OWASP ZAP
-      condition: always()
-
-    - bash: |
-        sudo npm install -g handlebars-cmd
-        cat <<EOF >nunit-template.hbs
-        {{#each site}}
-
-        <test-run
-            id="2"
-            name="Owasp test"
-            start-time="{{../[@generated]}}"  >
-            <test-suite
-                id="{{@index}}"
-                type="Assembly"
-                name="{{[@name]}}"
-                result="Failed"
-                failed="{{alerts.length}}">
-                <attachments>
-                    <attachment>
-                        <filePath>report.html</filePath>
-                    </attachment>
-                </attachments>
-            {{#each alerts}}<test-case
-                id="{{@index}}"
-                name="{{alert}}"
-                result="Failed"
-                fullname="{{alert}}"
-                time="1">
-                    <failure>
-                        <message>
-                            <![CDATA[{{{desc}}}]]>
-                        </message>
-                        <stack-trace>
-                            <![CDATA[
-        Solution:
-        {{{solution}}}
-
-        Reference:
-        {{{reference}}}
-
-        instances:{{#each instances}}
-        *{{uri}} 
-            - {{method}}
-            {{#if evidence}}- {{{evidence}}}{{/if}}
-                            {{/each}}]]>
-                        </stack-trace>
-                    </failure>
-            </test-case>
-            {{/each}}
-            </test-suite>
-        </test-run>
-        {{/each}}
-        EOF
-      displayName: 'owasp nunit template'
-      condition: always()
-
-    - bash: ' handlebars report.json < nunit-template.hbs > test-results.xml'
-      displayName: 'generate nunit type file'
-      condition: always()
-    - task: PublishTestResults@2
-      displayName: 'Publish Test Results'
-      inputs:
-        testResultsFormat: NUnit
-        testResultsFiles: 'test-results.xml'
-      condition: always()
-
-
+    
 - stage: 'Dev'
   displayName: 'Deploy to the dev environment'
   dependsOn: Build
@@ -165,7 +86,39 @@ stages:
               azureSubscription: 'Resource Manager - Tailspin - Space Game'
               appName: '$(WebAppNameDev)'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
-
+          - task: DockerInstaller@0
+            displayName: 'Install Docker'
+            inputs:
+              dockerVersion: '17.09.0-ce'
+          - task: Bash@3
+            inputs:
+              targetType: 'inline'
+              script: |
+                chmod -R 777  ./
+                docker run --rm -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-full-scan.py -t https://tailspin-space-game-web-dev-22667.azurewebsites.net -g gen.conf -x OWASP-ZAP-Report.xml -r scan-report.html
+                true
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                $XslPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/_QualityAssurance/SecurityTest/OWASPToNUnit3.xslt"
+                $XmlInputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/OWASP-ZAP-Report.xml"
+                $XmlOutputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/Converted-OWASP-ZAP-Report.xml"
+                $XslTransform = New-Object System.Xml.Xsl.XslCompiledTransform
+                $XslTransform.Load($XslPath)
+                $XslTransform.Transform($XmlInputPath, $XmlOutputPath)
+          - task: UniversalPackages@0
+            inputs:
+              command: 'publish'
+              publishDirectory: '$(Build.ArtifactStagingDirectory)'
+              feedsToUsePublish: 'internal'
+              vstsFeedPublish: 'f05ec843-cc89-45be-aa57-2b602eaf74e5/71f0418a-c2c1-47f0-8c1e-8f24a444c1fe'
+              vstsFeedPackagePublish: 'security_testing'
+              versionOption: 'patch'
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'NUnit'
+              testResultsFiles: '**/TEST-*.xml'
 - stage: 'Test'
   displayName: 'Deploy to the test environment'
   dependsOn: Dev
