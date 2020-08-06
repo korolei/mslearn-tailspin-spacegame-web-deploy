@@ -103,9 +103,9 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                $XslPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/Tailspin.SpaceGame.Web/OWASPToNUnit3.xslt"
-                $XmlInputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/OWASP-ZAP-Report.xml"
-                $XmlOutputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/Converted-OWASP-ZAP-Report.xml"
+                $XslPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/**/OWASPToNUnit3.xslt"
+                $XmlInputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/**/OWASP-ZAP-Report.xml"
+                $XmlOutputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/**/Converted-OWASP-ZAP-Report.xml"
                 $XslTransform = New-Object System.Xml.Xsl.XslCompiledTransform
                 $XslTransform.Load($XslPath)
                 $XslTransform.Transform($XmlInputPath, $XmlOutputPath)
