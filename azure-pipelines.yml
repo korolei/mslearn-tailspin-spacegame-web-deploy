@@ -99,16 +99,6 @@ stages:
                 chmod -R 777  ./
                 docker run --rm -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-full-scan.py -t https://tailspin-space-game-web-dev-22667.azurewebsites.net -g gen.conf -x OWASP-ZAP-Report.xml -r scan-report.html
                 true
-          - task: PowerShell@2
-            inputs:
-              targetType: 'inline'
-              script: |
-                $XslPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/_QualityAssurance/SecurityTest/OWASPToNUnit3.xslt"
-                $XmlInputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/OWASP-ZAP-Report.xml"
-                $XmlOutputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/Converted-OWASP-ZAP-Report.xml"
-                $XslTransform = New-Object System.Xml.Xsl.XslCompiledTransform
-                $XslTransform.Load($XslPath)
-                $XslTransform.Transform($XmlInputPath, $XmlOutputPath)
 
           - task: UniversalPackages@0
             inputs:
@@ -122,6 +112,7 @@ stages:
             inputs:
               testResultsFormat: 'NUnit'
               testResultsFiles: '**/TEST-*.xml'
+
 - stage: 'Test'
   displayName: 'Deploy to the test environment'
   dependsOn: Dev
@@ -169,6 +160,11 @@ stages:
         arguments: '--no-build --configuration $(buildConfiguration)'
         publishTestResults: true
         projects: '$(System.DefaultWorkingDirectory)/**/*UITests.csproj'
+    - task: owaspzap@1
+      inputs:
+        scantype: 'targetedScan'
+        url: 'https://tailspin-space-game-web-dev-22667.azurewebsites.net'
+        
 - stage: 'Staging'
   displayName: 'Deploy to the staging environment'
   dependsOn: Test
