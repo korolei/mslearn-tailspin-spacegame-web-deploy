@@ -76,45 +76,46 @@ stages:
           chmod -R 777  ./
           docker run --rm -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-full-scan.py -t https://tailspin-space-game-web-dev-22667.azurewebsites.net -g gen.conf -x OWASP-ZAP-Report.xml -r scan-report.html
           true
-          - task: PowerShell@2
-            inputs:
-              targetType: 'inline'
-              script: |
-                $XslPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/Tailspin.SpaceGame.Web/OWASPToNUnit3.xslt"
-                $XmlInputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/OWASP-ZAP-Report.xml"
-                $XmlOutputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/Converted-OWASP-ZAP-Report.xml"
-                $XslTransform = New-Object System.Xml.Xsl.XslCompiledTransform
-                $XslTransform.Load($XslPath)
-                $XslTransform.Transform($XmlInputPath, $XmlOutputPath)
-              errorActionPreference: 'continue'
-          - task: UniversalPackages@0
-            inputs:
-              command: 'publish'
-              publishDirectory: '$(Build.ArtifactStagingDirectory)'
-              feedsToUsePublish: 'internal'
-              vstsFeedPublish: 'f05ec843-cc89-45be-aa57-2b602eaf74e5/71f0418a-c2c1-47f0-8c1e-8f24a444c1fe'
-              vstsFeedPackagePublish: 'security_testing'
-              versionOption: 'patch'
-          - task: PublishTestResults@2
-            inputs:
-              testResultsFormat: 'NUnit'
-              testResultsFiles: '**/TEST-*.xml'
-          - stage: 'Dev'
-            displayName: 'Deploy to the dev environment'
-            dependsOn: Build
-            jobs:
-            - deployment: Deploy
-              pool:
-                vmImage: 'ubuntu-18.04'
-              environment: dev
-              variables:
-              - group: Release
-              strategy:
-                runOnce:
-                  deploy:
-                    steps:
-                    - download: current
-                      artifact: drop
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          $XslPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/Tailspin.SpaceGame.Web/OWASPToNUnit3.xslt"
+          $XmlInputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/OWASP-ZAP-Report.xml"
+          $XmlOutputPath = "$($Env:SYSTEM_DEFAULTWORKINGDIRECTORY)/Converted-OWASP-ZAP-Report.xml"
+          $XslTransform = New-Object System.Xml.Xsl.XslCompiledTransform
+          $XslTransform.Load($XslPath)
+          $XslTransform.Transform($XmlInputPath, $XmlOutputPath)
+        errorActionPreference: 'continue'
+    - task: UniversalPackages@0
+      inputs:
+        command: 'publish'
+        publishDirectory: '$(Build.ArtifactStagingDirectory)'
+        feedsToUsePublish: 'internal'
+        vstsFeedPublish: 'f05ec843-cc89-45be-aa57-2b602eaf74e5/71f0418a-c2c1-47f0-8c1e-8f24a444c1fe'
+        vstsFeedPackagePublish: 'security_testing'
+        versionOption: 'patch'
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'NUnit'
+        testResultsFiles: '**/TEST-*.xml'
+
+- stage: 'Dev'
+  displayName: 'Deploy to the dev environment'
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    pool:
+      vmImage: 'ubuntu-18.04'
+    environment: dev
+    variables:
+    - group: Release
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
           - task: AzureWebApp@1
             displayName: 'Azure App Service Deploy: website'
             inputs:
