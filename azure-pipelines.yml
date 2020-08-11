@@ -65,40 +65,17 @@ stages:
         
     - publish: '$(Build.ArtifactStagingDirectory)'
       artifact: drop
-    
-- stage: 'Dev'
-  displayName: 'Deploy to the dev environment'
-  dependsOn: Build
-  jobs:
-  - deployment: Deploy
-    pool:
-      vmImage: 'ubuntu-18.04'
-    environment: dev
-    variables:
-    - group: Release
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: drop
-          - task: AzureWebApp@1
-            displayName: 'Azure App Service Deploy: website'
-            inputs:
-              azureSubscription: 'Resource Manager - Tailspin - Space Game'
-              appName: '$(WebAppNameDev)'
-              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
-          - task: DockerInstaller@0
-            displayName: 'Install Docker'
-            inputs:
-              dockerVersion: '17.09.0-ce'
-          - task: Bash@3
-            inputs:
-              targetType: 'inline'
-              script: |
-                chmod -R 777  ./
-                docker run --rm -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-full-scan.py -t https://tailspin-space-game-web-dev-22667.azurewebsites.net -g gen.conf -x OWASP-ZAP-Report.xml -r scan-report.html
-                true
+    - task: DockerInstaller@0
+      displayName: 'Install Docker'
+      inputs:
+        dockerVersion: '17.09.0-ce'
+    - task: Bash@3
+      inputs:
+        targetType: 'inline'
+        script: |
+          chmod -R 777  ./
+          docker run --rm -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-full-scan.py -t https://tailspin-space-game-web-dev-22667.azurewebsites.net -g gen.conf -x OWASP-ZAP-Report.xml -r scan-report.html
+          true
           - task: PowerShell@2
             inputs:
               targetType: 'inline'
@@ -122,6 +99,29 @@ stages:
             inputs:
               testResultsFormat: 'NUnit'
               testResultsFiles: '**/TEST-*.xml'
+          - stage: 'Dev'
+            displayName: 'Deploy to the dev environment'
+            dependsOn: Build
+            jobs:
+            - deployment: Deploy
+              pool:
+                vmImage: 'ubuntu-18.04'
+              environment: dev
+              variables:
+              - group: Release
+              strategy:
+                runOnce:
+                  deploy:
+                    steps:
+                    - download: current
+                      artifact: drop
+          - task: AzureWebApp@1
+            displayName: 'Azure App Service Deploy: website'
+            inputs:
+              azureSubscription: 'Resource Manager - Tailspin - Space Game'
+              appName: '$(WebAppNameDev)'
+              package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+
 
 - stage: 'Test'
   displayName: 'Deploy to the test environment'
