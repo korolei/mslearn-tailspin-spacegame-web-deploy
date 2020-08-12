@@ -92,7 +92,7 @@ stages:
           - bash: |
               sudo npm install -g handlebars-cmd
 
-              cat <<EOF > owaspzap/nunit-template.hbs
+              cat <<EOF > $(System.DefaultWorkingDirectory)/**/nunit-template.hbs
               {{#each site}}
 
               <test-run
@@ -107,7 +107,7 @@ stages:
                       failed="{{alerts.length}}">
                       <attachments>
                           <attachment>
-                              <filePath>owaspzap/report.html</filePath>
+                              <filePath>$(System.DefaultWorkingDirectory)/**/report.html</filePath>
                           </attachment>
                       </attachments>
                   {{#each alerts}}<test-case
@@ -144,7 +144,7 @@ stages:
             displayName: 'owasp nunit template'
             condition: always()
             
-          - bash: ' handlebars owaspzap/report.json < owaspzap/nunit-template.hbs > owaspzap/test-results.xml'
+          - bash: ' handlebars $(System.DefaultWorkingDirectory)/**/report.json < $(System.DefaultWorkingDirectory)/**/nunit-template.hbs > $(System.DefaultWorkingDirectory)/**/test-results.xml'
             displayName: 'generate nunit type file'
             condition: always()
 
@@ -153,10 +153,10 @@ stages:
               aggressivemode: true
           
           - task: PublishTestResults@2
-            displayName: 'Publish Test Results **/TEST-*.xml'
+            displayName: 'Publish Test Results $(System.DefaultWorkingDirectory)/**/TEST-*.xml'
             inputs:
               testResultsFormat: NUnit
-              testResultsFiles: 'owaspzap/test-results.xml'
+              testResultsFiles: '$(System.DefaultWorkingDirectory)/**/test-results.xml'
             condition: always()
 
               
