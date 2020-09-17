@@ -102,10 +102,7 @@ stages:
               azureSubscription: 'Resource Manager - Tailspin - Space Game'
               appName: '$(WebAppNameDev)'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
-          - task: owaspzap@1
-            inputs:
-              scantype: 'targetedScan'
-              url: 'https://tailspin-space-game-web-dev-22667.azurewebsites.net'
+
               
 - stage: 'Test'
   displayName: 'Deploy to the test environment'
@@ -154,3 +151,9 @@ stages:
               azureSubscription: 'Resource Manager - Tailspin - Space Game'
               appName: '$(WebAppNameStaging)'
               package: '$(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip'
+          - task: owaspzap@1
+            displayName: 'OWASP ZAP'
+            inputs:
+              scantype: 'targetedScan'
+              threshold: '75'
+              url: 'https://tailspin-space-game-web-dev-22667.azurewebsites.net'
